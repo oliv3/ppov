@@ -5,6 +5,7 @@
 -compile([export_all]).
 
 -export([started/1, done/1, error/2]).
+-export([status/0]).
 
 %% Internal exports
 -export([boot/0]).
@@ -31,6 +32,9 @@ done(UUID) ->
 error(UUID, Error) ->
     cast({error, UUID, Error}).
 
+status() ->
+    call(status).
+
 stop() ->
     ?SERVER ! stop.
 
@@ -48,6 +52,11 @@ loop() ->
 	{done, UUID} ->
 	    [Job] = dets:lookup(?JOBS, UUID),
 	    dets:insert(?JOBS, Job#job{status=done}),
+	    loop();
+
+	{From, Ref, status} ->
+	    dets:foldl(fun display/2, [], ?JOBS),
+	    From ! {Ref, ok},
 	    loop();
 	    
 	stop ->
@@ -67,3 +76,7 @@ call(Msg) ->
 	{Ref, Result} ->
 	    Result
     end.
+
+display(#job{id=UUID, status=Status}, Acc) ->
+    io:format("~s status: ~p~n", [uuid:to_string(UUID), Status]),
+    Acc.
