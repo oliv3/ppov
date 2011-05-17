@@ -6,8 +6,13 @@
 -define(NICE, "nice").
 -define(POVRAY, "povray").
 
+-define(TEST, "test/planet.pov").
+
+cwd() ->
+    {ok, CWD} = file:get_cwd(),
+    CWD++"/".
 test() ->
-    render("test/planet.pov").
+    render(cwd()++?TEST).
 
 render(File) ->
     UUID = uuid:timestamp(),
