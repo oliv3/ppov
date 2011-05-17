@@ -1,3 +1,4 @@
+jobs
 *.beam
 *~
 erl_crash.dump
