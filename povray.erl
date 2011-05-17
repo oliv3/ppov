@@ -12,21 +12,25 @@ test() ->
 render(File) ->
     UUID = uuid:timestamp(),
     spawn_link(?MODULE, render, [UUID, File]),
-    ppov:started(UUID),
     {ok, uuid:to_string(UUID)}.
 
 
 %% cf http://www.cs.pitt.edu/~alanjawi/cs449/code/shell/UnixSignals.htm
 
 render(UUID, File) ->
-    Nice = os:find_executable(?NICE),
     Povray = os:find_executable(?POVRAY),
     FileName = filename:basename(File),
     DirName = filename:dirname(File),
-    Args = " +I" ++ FileName ++ " 2>/dev/null",
-    Cmd = Nice ++ " " ++ Povray ++ Args,
+    Args = " +I" ++ FileName,
+    Cmd = Povray ++ Args,
+    run_povray(UUID, Cmd, DirName).
+
+run_povray(UUID, Cmd, DirName) ->
+    Nice = os:find_executable(?NICE),
     %% io:format("Spawning command: ~p in ~p~n", [Cmd, DirName]),
-    Port = open_port({spawn, Cmd}, [{cd, DirName}, exit_status]),
+    Cmd2 = Nice++" "++Cmd++" 2>/dev/null",
+    Port = open_port({spawn, Cmd2}, [{cd, DirName}, exit_status]),
+    ppov:started(UUID, Cmd, DirName),
     Exit = receive
 	       {Port, {exit_status, E}} ->
 		   E

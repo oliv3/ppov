@@ -4,7 +4,7 @@
 
 -compile([export_all]).
 
--export([started/1, done/1, error/2]).
+-export([started/3, done/1, error/2]).
 -export([status/0]).
 
 %% Internal exports
@@ -13,6 +13,7 @@
 -define(SERVER, ?MODULE).
 
 -record(job, {id,               %% UUID
+	      cmd, dirname,     %% Command and directory
 	      status=running    %% |paused|done|{error, exit_status}
 	     }).
 -define(JOBS, jobs).
@@ -24,8 +25,8 @@ start() ->
 test() ->
     povray:test().
 
-started(UUID) ->
-    Job = #job{id=UUID},
+started(UUID, Cmd, DirName) ->
+    Job = #job{id=UUID, cmd=Cmd, dirname=DirName},
     cast({started, Job}).
 done(UUID) ->
     cast({done, UUID}).
@@ -77,6 +78,7 @@ call(Msg) ->
 	    Result
     end.
 
-display(#job{id=UUID, status=Status}, Acc) ->
-    io:format("~s status: ~p~n", [uuid:to_string(UUID), Status]),
+display(#job{id=UUID, cmd=Cmd, dirname=DirName, status=Status}, Acc) ->
+    io:format("~s status: ~p command:~s path: ~s~n",
+	      [uuid:to_string(UUID), Status, Cmd, DirName]),
     Acc.
