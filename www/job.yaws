@@ -19,13 +19,12 @@ out(Args) ->
 	Links = [{li, [], {img, [{src, BaseHref++File}, {alt, File}]}} || File <- Files],
 	Listing = {ul, [], Links},
 
-%%        {ehtml, [H2, {pre, [], [f("~p", [Parsed]), " -> ", Id, " dir: ", DirName,
- %%                f(" files: ~p", [Files]), Listing]}]}.
         case ImgName of
 	     undefined ->
 	     	     Title = {title, [], "PPOV Job result"},
 		     Header = {header, [], Title},
-	             Body = [H2, {pre, [], [f("~p", [Parsed]), " -> ", Id, " dir: ", DirName, f(" files: ~p", [Files]), Listing]}],
+	             %% Body = [H2, {pre, [], [f("~p", [Parsed]), " -> ", Id, " dir: ", DirName, f(" files: ~p", [Files]), Listing]}],
+	             Body = {body, [], [H2, Listing]},
 	     	     Html = {html, [], [Header, Body]},
 		     {ehtml, Html};
 
