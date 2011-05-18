@@ -20,7 +20,7 @@ out(_Args) ->
 	   Lis0 = dets:foldl(fun display/2, [], ?JOBS),
 	   Lis1 = lists:reverse(Lis0),
 	   List = {ul, [], Lis1},
-	   {ehtml, List}.
+	   {ehtml, {pre, [], List}}.
 </erl>
 </body>
 </html>
