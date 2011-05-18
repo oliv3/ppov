@@ -16,7 +16,7 @@
 -export([boot/0]).
 
 -define(SERVER, ?MODULE).
--record(state, {ports=[]}).
+-record(state, {ports=ets:new(ports, [protected])}).
 
 
 start() ->
@@ -49,16 +49,18 @@ boot() ->
     register(?SERVER, self()),
     loop(#state{}).
 
-loop(#state{ports=Ports} = State) ->
+loop(#state{ports=Tid} = State) ->
     receive
 	{started, Job, Port} ->
 	    dets:insert(?JOBS, Job),
-	    loop(State#state{ports=[Port|Ports]});
+	    ets:insert(Tid, {Port}),
+	    loop(State);
 
 	{done, UUID, Port} ->
 	    Job = job(UUID),
 	    dets:insert(?JOBS, Job#job{status=done}),
-	    loop(State#state{ports=Ports--[Port]});
+	    ets:delete(Tid, {Port}),
+	    loop(State);
 
 	{From, Ref, status} ->
 	    dets:foldl(fun display/2, [], ?JOBS),
@@ -66,8 +68,8 @@ loop(#state{ports=Ports} = State) ->
 	    loop(State);
 
 	{From, Ref, stop} ->
-	    io:format("Closing pending ports: ~p~n", [Ports]),
-	    [port_close(Port) || Port <- Ports],
+	    %% io:format("Remaining ports: ~p~n", [ets:tab2list(Tid)]),
+	    [catch port_close(Port) || {Port} <- ets:tab2list(Tid)],
 	    dets:foldl(fun pause/2, [], ?JOBS),
 	    dets:close(?JOBS),
 	    uuid:stop(),
