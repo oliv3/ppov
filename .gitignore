@@ -1,3 +1,6 @@
+report.log
+auth.log
+*.access
 jobs
 *.beam
 *~
