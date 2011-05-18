@@ -34,7 +34,8 @@ status() ->
     call(status).
 
 stop() ->
-    ?SERVER ! stop.
+    call(stop),
+    init:stop().
 
 boot() ->
     {ok, ?JOBS} = dets:open_file(?JOBS, [{keypos, 2}]),
@@ -57,9 +58,11 @@ loop() ->
 	    From ! {Ref, ok},
 	    loop();
 	    
-	stop ->
+	{From, Ref, stop} ->
+	    dets:foldl(fun pause/2, [], ?JOBS),
 	    dets:close(?JOBS),
-	    uuid:stop();
+	    uuid:stop(),
+	    From ! {Ref, stopped};
 	
 	Other ->
 	    io:format("~p: unhandled message ~p~n", [?MODULE, Other])
@@ -79,6 +82,13 @@ display(#job{id=UUID, cmd=Cmd, dirname=DirName, status=Status}, Acc) ->
     io:format("~s status: ~p command:~s path: ~s~n",
 	      [uuid:to_string(UUID), Status, Cmd, DirName]),
     Acc.
+
+pause(#job{status=running} = Job, Acc) ->
+    dets:insert(?JOBS, Job#job{status=paused}),
+    Acc;
+pause(_Job, Acc) ->
+    Acc.
+
 
 job(UUID) ->
     [Job] = dets:lookup(?JOBS, UUID),
