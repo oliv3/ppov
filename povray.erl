@@ -40,7 +40,7 @@ render(UUID, File) ->
     run_povray(UUID, Cmd, DirName).
 
 run_povray(UUID, Cmd, DirName) ->
-    Nice = os:find_executable(?NICE),
+    Nice = os:find_executable(?NICE)++" -n19",
     %% io:format("Spawning command: ~p in ~p~n", [Cmd, DirName]),
     Cmd2 = Nice++" "++Cmd++" 2>/dev/null",
     Port = open_port({spawn, Cmd2}, [{cd, DirName}, exit_status]),
