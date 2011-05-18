@@ -39,6 +39,8 @@ status() ->
 
 stop() ->
     call(stop),
+    uuid:stop(),
+    %% TODO: ppov_http:stop() ?
     init:stop().
 
 resume() ->
@@ -72,7 +74,6 @@ loop(#state{ports=Tid} = State) ->
 	    [catch port_close(Port) || {Port} <- ets:tab2list(Tid)],
 	    dets:foldl(fun pause/2, [], ?JOBS),
 	    dets:close(?JOBS),
-	    uuid:stop(),
 	    From ! {Ref, stopped};
 
 	{From, Ref, resume} ->
