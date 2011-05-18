@@ -10,7 +10,8 @@
 		"test/planet/planet.pov",
 		"test/advanced/landscape/landscape.pov",
 		"test/advanced/wineglass/wineglass.pov",
-		"test/advanced/chess2/chess2.pov"
+		"test/advanced/chess2/chess2.pov",
+		"test/advanced/abyss/abyss.pov"
 	       ]).
 
 cwd() ->
