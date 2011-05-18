@@ -25,8 +25,10 @@ init() ->
 			] %% gconf
 		       ).
 
+%% superfluous guards ?
 encode_uuid(UUID) when is_binary(UUID), size(UUID) =:= 16 ->
-    binary_to_list(base64:encode(term_to_binary(UUID))).
+    yaws_api:url_encode(binary_to_list(base64:encode(term_to_binary(UUID)))).
 
 decode_uuid(UUID) when is_list(UUID) ->
+    %% we don't do yaws_api:url_decode (yet) since we use yaws_api:parse_query/1
     binary_to_term(base64:decode(UUID), [safe]).
