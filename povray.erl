@@ -6,7 +6,7 @@
 -define(NICE, "nice").
 -define(POVRAY, "povray").
 
--define(TEST, "test/planet.pov").
+-define(TEST, "test/planet/planet.pov").
 
 cwd() ->
     {ok, CWD} = file:get_cwd(),
@@ -26,7 +26,7 @@ render(UUID, File) ->
     Povray = os:find_executable(?POVRAY),
     FileName = filename:basename(File),
     DirName = filename:dirname(File),
-    Args = " +I" ++ FileName,
+    Args = " +I" ++ FileName ++ " +O" ++ pov2png(FileName),
     Cmd = Povray ++ Args,
     run_povray(UUID, Cmd, DirName).
 
@@ -47,3 +47,8 @@ run_povray(UUID, Cmd, DirName) ->
 	Other -> %% TODO: paused ou error
 	    ppov:error(UUID, Other)
     end.
+
+
+pov2png(File0) ->
+    Base = filename:basename(File0, ".pov"),
+    Base++".png".
