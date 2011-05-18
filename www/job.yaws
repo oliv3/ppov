@@ -22,7 +22,7 @@ out(Args) ->
 	Files = filelib:wildcard("*.png", DirName),
 	BaseHref = "/job.yaws?id=" ++ yaws_api:url_encode(Id) ++ "&file=",
 	%% Links = [{li, [], {a, [{href, BaseHref++File}], File}} || File <- Files],
-	Links = [{li, [], {img, [{src, BaseHref++File}, {alt, File}, {width, 640}, {height, 480}]}} || File <- Files],
+	Links = [{li, [], {img, [{src, BaseHref++File}, {alt, File}]}} || File <- Files],
 	Listing = {ul, [], Links},
 
         case ImgName of
