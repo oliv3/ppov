@@ -12,7 +12,8 @@
 		"test/advanced/wineglass/wineglass.pov",
 		"test/advanced/chess2/chess2.pov",
 		"test/advanced/abyss/abyss.pov",
-		"test/advanced/woodbox/woodbox.pov"
+		"test/advanced/woodbox/woodbox.pov",
+		"test/animations/ambient/ambient.ini"
 	       ]).
 
 cwd() ->
@@ -35,7 +36,7 @@ render(UUID, File) ->
     FileName = filename:basename(File),
     DirName = filename:dirname(File),
     Size = " +W1024 +H768",
-    Args = Size ++ " +I" ++ FileName ++ " +O" ++ pov2png(FileName),
+    Args = Size ++ " " ++ FileName,
     Cmd = Povray ++ Args,
     run_povray(UUID, Cmd, DirName).
 
@@ -56,8 +57,3 @@ run_povray(UUID, Cmd, DirName) ->
 	Other -> %% TODO: paused ou error
 	    ppov:error(UUID, Other)
     end.
-
-
-pov2png(File0) ->
-    Base = filename:basename(File0, ".pov"),
-    Base++".png".
