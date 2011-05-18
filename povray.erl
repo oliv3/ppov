@@ -4,7 +4,11 @@
 -compile([export_all]).
 
 -define(NICE, "nice").
--define(POVRAY, "povray").
+
+%% Super hack to close port processes:
+%% ln -s `which povray` ppovray
+%% Then you can "killall ppovray" :)
+-define(POVRAY, "ppovray").
 
 -define(TESTS, [
 		"test/planet/planet.pov",
