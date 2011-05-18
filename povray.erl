@@ -5,6 +5,8 @@
 
 -compile([export_all]).
 
+%% TODO: export render/2 and run_povray/3
+
 -define(NICE, "nice").
 
 %% Super hack to close port processes:
@@ -35,8 +37,6 @@ render(File) ->
     {ok, uuid:to_string(UUID)}.
 
 
-%% cf http://www.cs.pitt.edu/~alanjawi/cs449/code/shell/UnixSignals.htm
-
 render(UUID, File) ->
     Povray = os:find_executable(?POVRAY),
     FileName = filename:basename(File),
@@ -49,7 +49,7 @@ render(UUID, File) ->
 run_povray(UUID, Cmd, DirName) ->
     Nice = os:find_executable(?NICE)++" -n19",
     %% io:format("Spawning command: ~p in ~p~n", [Cmd, DirName]),
-    Cmd2 = Nice++" "++Cmd++" 2>/dev/null",
+    Cmd2 = Nice++" "++Cmd++" +C "++" 2>/dev/null",  %%% CHEAT WITH +C
     Port = open_port({spawn, Cmd2}, [{cd, DirName}, exit_status]),
     Job = #job{id=UUID, cmd=Cmd, dirname=DirName},
     ppov:started(Job, Port),
@@ -61,6 +61,7 @@ run_povray(UUID, Cmd, DirName) ->
 	0 ->
 	    ppov:done(UUID, Port);
 	
+	%% TODO: cf http://www.cs.pitt.edu/~alanjawi/cs449/code/shell/UnixSignals.htm
 	Other -> %% TODO: paused ou error
 	    ppov:error(UUID, Other)
     end.

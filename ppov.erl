@@ -5,8 +5,12 @@
 
 -compile([export_all]).
 
+-export([start/0, stop/0, resume/0]).
 -export([started/2, done/2, error/2]).
 -export([status/0]).
+
+%% Tests
+-export([test/0]).
 
 %% Internal exports
 -export([boot/0]).
@@ -37,6 +41,9 @@ stop() ->
     call(stop),
     init:stop().
 
+resume() ->
+    call(resume).
+
 boot() ->
     {ok, ?JOBS} = dets:open_file(?JOBS, [{keypos, 2}]),
     register(?SERVER, self()),
@@ -65,6 +72,11 @@ loop(#state{ports=Ports} = State) ->
 	    dets:close(?JOBS),
 	    uuid:stop(),
 	    From ! {Ref, stopped};
+
+	{From, Ref, resume} ->
+	    dets:foldl(fun resume/2, [], ?JOBS),
+	    From ! {Ref, ok},
+	    loop(State);
 	
 	Other ->
 	    io:format("~p: unhandled message ~p~n", [?MODULE, Other])
@@ -80,15 +92,27 @@ call(Msg) ->
 	    Result
     end.
 
+
 display(#job{id=UUID, cmd=Cmd, dirname=DirName, status=Status}, Acc) ->
     io:format("~s status: ~p command:~s path: ~s~n",
 	      [uuid:to_string(UUID), Status, Cmd, DirName]),
     Acc.
 
+
 pause(#job{status=running} = Job, Acc) ->
     dets:insert(?JOBS, Job#job{status=paused}),
     Acc;
 pause(_Job, Acc) ->
+    Acc.
+
+
+%% TODO: s/id/uuid in the job record ? --oliv3
+resume(#job{id=UUID, status=paused, cmd=Cmd, dirname=DirName} = Job, Acc) ->
+    %% povray:run_povray(UUID, Cmd, DirName),
+    spawn_link(povray, run_povray, [UUID, Cmd, DirName]),
+    dets:insert(?JOBS, Job#job{status=running}),
+    Acc;
+resume(_Job, Acc) ->
     Acc.
 
 
