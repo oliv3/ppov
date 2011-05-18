@@ -1,0 +1,35 @@
+<erl>
+-include("ppov.hrl").
+
+get_image(DirName, ImgName) ->
+        {ok, PNG} = file:read_file(DirName++"/"++ImgName),
+	{content, "image/png", PNG}.
+
+out(Args) ->
+	Parsed = yaws_api:parse_query(Args),
+	Id = proplists:get_value("id", Parsed),
+	ImgName = proplists:get_value("file", Parsed),
+	UUID = ppov_http:decode_uuid(Id),
+	Job = ppov:job(UUID),
+	H2 = {h2, [], ["-=[ Job: ", uuid:to_string(UUID), " ]=-"]},
+	DirName = Job#job.dirname,
+	Files = filelib:wildcard("*.png", DirName),
+	BaseHref = "/job.yaws?id=" ++ Id ++ "&file=",
+	%% Links = [{li, [], {a, [{href, BaseHref++File}], File}} || File <- Files],
+	Links = [{li, [], {img, [{src, BaseHref++File}, {alt, File}]}} || File <- Files],
+	Listing = {ul, [], Links},
+
+%%        {ehtml, [H2, {pre, [], [f("~p", [Parsed]), " -> ", Id, " dir: ", DirName,
+ %%                f(" files: ~p", [Files]), Listing]}]}.
+        case ImgName of
+	     undefined ->
+	     	     Title = {title, [], "PPOV Job result"},
+		     Header = {header, [], Title},
+	             Body = [H2, {pre, [], [f("~p", [Parsed]), " -> ", Id, " dir: ", DirName, f(" files: ~p", [Files]), Listing]}],
+	     	     Html = {html, [], [Header, Body]},
+		     {ehtml, Html};
+
+             ImgName ->
+	     	     get_image(DirName, ImgName)
+        end.
+</erl>
