@@ -1,4 +1,4 @@
-all: povray.beam ppov.beam uuid.beam
+all: povray.beam ppov.beam uuid.beam ppov_http.beam
 
 %.beam: %.erl
 	erlc $< -o $@
