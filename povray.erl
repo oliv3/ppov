@@ -31,7 +31,8 @@ render(UUID, File) ->
     Povray = os:find_executable(?POVRAY),
     FileName = filename:basename(File),
     DirName = filename:dirname(File),
-    Args = " +I" ++ FileName ++ " +O" ++ pov2png(FileName),
+    Size = " +W1024 +H768",
+    Args = Size ++ " +I" ++ FileName ++ " +O" ++ pov2png(FileName),
     Cmd = Povray ++ Args,
     run_povray(UUID, Cmd, DirName).
 
