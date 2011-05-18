@@ -1,6 +1,8 @@
 -module(povray).
 -author('olivier@biniou.info').
 
+-include("ppov.hrl").
+
 -compile([export_all]).
 
 -define(NICE, "nice").
@@ -49,14 +51,15 @@ run_povray(UUID, Cmd, DirName) ->
     %% io:format("Spawning command: ~p in ~p~n", [Cmd, DirName]),
     Cmd2 = Nice++" "++Cmd++" 2>/dev/null",
     Port = open_port({spawn, Cmd2}, [{cd, DirName}, exit_status]),
-    ppov:started(UUID, Cmd, DirName),
+    Job = #job{id=UUID, cmd=Cmd, dirname=DirName},
+    ppov:started(Job, Port),
     Exit = receive
 	       {Port, {exit_status, E}} ->
 		   E
 	   end,
     case Exit of
 	0 ->
-	    ppov:done(UUID);
+	    ppov:done(UUID, Port);
 	
 	Other -> %% TODO: paused ou error
 	    ppov:error(UUID, Other)

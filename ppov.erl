@@ -5,13 +5,14 @@
 
 -compile([export_all]).
 
--export([started/3, done/1, error/2]).
+-export([started/2, done/2, error/2]).
 -export([status/0]).
 
 %% Internal exports
 -export([boot/0]).
 
 -define(SERVER, ?MODULE).
+-record(state, {ports=[]}).
 
 
 start() ->
@@ -22,12 +23,11 @@ start() ->
 test() ->
     povray:test().
 
-started(UUID, Cmd, DirName) ->
-    Job = #job{id=UUID, cmd=Cmd, dirname=DirName},
-    cast({started, Job}).
-done(UUID) ->
-    cast({done, UUID}).
-error(UUID, Error) ->
+started(Job, Port) ->
+    cast({started, Job, Port}).
+done(UUID, Port) ->
+    cast({done, UUID, Port}).
+error(UUID, Error) -> %% TODO add Port
     cast({error, UUID, Error}).
 
 status() ->
@@ -40,25 +40,27 @@ stop() ->
 boot() ->
     {ok, ?JOBS} = dets:open_file(?JOBS, [{keypos, 2}]),
     register(?SERVER, self()),
-    loop().
+    loop(#state{}).
 
-loop() ->
+loop(#state{ports=Ports} = State) ->
     receive
-	{started, Job} ->
+	{started, Job, Port} ->
 	    dets:insert(?JOBS, Job),
-	    loop();
+	    loop(State#state{ports=[Port|Ports]});
 
-	{done, UUID} ->
+	{done, UUID, Port} ->
 	    Job = job(UUID),
 	    dets:insert(?JOBS, Job#job{status=done}),
-	    loop();
+	    loop(State#state{ports=Ports--[Port]});
 
 	{From, Ref, status} ->
 	    dets:foldl(fun display/2, [], ?JOBS),
 	    From ! {Ref, ok},
-	    loop();
-	    
+	    loop(State);
+
 	{From, Ref, stop} ->
+	    io:format("Closing pending ports: ~p~n", [Ports]),
+	    [port_close(Port) || Port <- Ports],
 	    dets:foldl(fun pause/2, [], ?JOBS),
 	    dets:close(?JOBS),
 	    uuid:stop(),
