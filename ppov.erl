@@ -1,6 +1,7 @@
 -module(ppov).
 -author('olivier@biniou.info').
 
+-include("ppov.hrl").
 
 -compile([export_all]).
 
@@ -12,13 +13,9 @@
 
 -define(SERVER, ?MODULE).
 
--record(job, {id,               %% UUID
-	      cmd, dirname,     %% Command and directory
-	      status=running    %% |paused|done|{error, exit_status}
-	     }).
--define(JOBS, jobs).
 
 start() ->
+    ppov_http:start(),
     uuid:start(),
     spawn(?MODULE, boot, []).
 
@@ -51,7 +48,7 @@ loop() ->
 	    loop();
 
 	{done, UUID} ->
-	    [Job] = dets:lookup(?JOBS, UUID),
+	    Job = job(UUID),
 	    dets:insert(?JOBS, Job#job{status=done}),
 	    loop();
 
@@ -82,3 +79,7 @@ display(#job{id=UUID, cmd=Cmd, dirname=DirName, status=Status}, Acc) ->
     io:format("~s status: ~p command:~s path: ~s~n",
 	      [uuid:to_string(UUID), Status, Cmd, DirName]),
     Acc.
+
+job(UUID) ->
+    [Job] = dets:lookup(?JOBS, UUID),
+    Job.
