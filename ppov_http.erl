@@ -1,6 +1,8 @@
 -module(ppov_http).
 -author('olivier@biniou.info').
 
+-include("ppov.hrl").
+
 -export([start/0]).
 -export([encode_uuid/1, decode_uuid/1]).
 
@@ -16,6 +18,7 @@ init() ->
     DocRoot = "./www",
     yaws:start_embedded(DocRoot,
 			[
+			 {servername, ?CONTROL_HOST},
 			 {listen, {0,0,0,0}}, {port, 44444},
 			 {docroot, DocRoot}
 			], %% sconf
