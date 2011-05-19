@@ -1,0 +1,26 @@
+<html>
+<head>
+<title>PPOV</title>
+</head>
+<body>
+<h1>-=[ Current jobs on this server ]=-</h1>
+<erl>
+-include("ppov.hrl").
+
+display(#job{id=UUID, cmd=Cmd, dirname=DirName, status=Status}, Acc) ->
+%%    io:format("~s status: ~p command:~s path: ~s~n",
+%%	      [uuid:to_string(UUID), Status, Cmd, DirName]),
+	   HRef = "/job.yaws?id=" ++ ppov_http:encode_uuid(UUID),
+	   StatusT = [" (", atom_to_list(Status), ")"],
+	   Link = {a, [{href, HRef}], uuid:to_string(UUID)},
+	   Item = {li, [], [Link, StatusT, " cmd: ", Cmd, " dir: ", DirName]},
+    [Item|Acc].
+
+out(_Args) ->
+	   Lis0 = dets:foldl(fun display/2, [], ?JOBS),
+	   Lis1 = lists:reverse(Lis0),
+	   List = {ul, [], Lis1},
+	   {ehtml, {pre, [], List}}.
+</erl>
+</body>
+</html>
