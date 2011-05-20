@@ -9,7 +9,7 @@
 -export([started/2, done/2, error/2]).
 -export([add/1, status/0]).
 
--define(MAX_JOBS, 4).
+-define(MAX_JOBS, 10).
 
 %% TODO:
 %% (ppov@localhost)1> ppov: unhandled message {error,<<131,5,117,66,130,246,17,224,166,202,0,0,0,0,0,
@@ -34,7 +34,8 @@
 -define(SERVER, ?MODULE).
 -record(state, {
 	  ports=ets:new(ports, [protected]),
-	  waiting=ets:new(waiting, [protected])
+	  waiting=ets:new(waiting, [ordered_set, protected]),
+	  serial=0
 	 }).
 
 
@@ -71,23 +72,21 @@ boot() ->
     register(?SERVER, self()),
     loop(#state{}).
 
-loop(#state{ports=Tid, waiting=WaitTid} = State) ->
+loop(#state{ports=Tid, waiting=WaitTid, serial=S} = State) ->
     receive
 	{From, Ref, {add, File}} ->
 	    N = ets:info(Tid, size),
 	    if
 		N < ?MAX_JOBS ->
-		    %% {Job, Port} = povray:render(File),
-		    %% dets:insert(?JOBS, Job),
-		    %% ets:insert(Tid, {Port}),
 		    start_job(Tid, File),
-		    From ! {Ref, {added, File}};
+		    From ! {Ref, {added, File}},
+		    loop(State);
 		true ->
-		    io:format("Add file to waiting queue: ~p~n", [File]),
-		    ets:insert(WaitTid, {File}),
-		    From ! {Ref, {waiting, File}}
-	    end,
-	    loop(State);
+		    %% io:format("Add file to waiting queue: ~p~n", [File]),
+		    ets:insert(WaitTid, {S, File}),
+		    From ! {Ref, {waiting, File}},
+		    loop(State#state{serial=S+1})
+	    end;
 
 	{done, UUID, Port} ->
 	    Job = job(UUID),
@@ -98,9 +97,9 @@ loop(#state{ports=Tid, waiting=WaitTid} = State) ->
 	    case ets:tab2list(WaitTid) of
 		[] ->
 		    ok;
-		[{File}|_] ->
-		    io:format("Start waiting job: ~p~n", [File]),
-		    ets:delete(WaitTid, File),
+		[{Serial, File}|_] ->
+		    io:format("Start waiting job: ~p, ~p~n", [Serial, File]),
+		    ets:delete(WaitTid, Serial),
 		    start_job(Tid, File)
 	    end,
 	    loop(State);
