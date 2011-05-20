@@ -29,7 +29,9 @@ render(Parent, Ref, File) ->
     Povray = os:find_executable(?POVRAY),
     FileName = filename:basename(File),
     DirName = filename:dirname(File),
-    Size = " +W640 +H480",
+    Size = " +W160 +H120",
+    %% Size = " +W320 +H240",
+    %% Size = " +W640 +H480",
     %% Size = " +W800 +H600",
     Args = Size ++ " " ++ FileName,
     Cmd = Povray ++ Args,
@@ -39,8 +41,8 @@ render(Parent, Ref, File) ->
 run_povray(Parent, Ref, #job{id=UUID, cmd=Cmd, dirname=DirName} = Job) ->
     Nice = os:find_executable(?NICE)++" -n19",
     %% io:format("Spawning command: ~p in ~p~n", [Cmd, DirName]),
-    %% Cmd2 = Nice++" "++Cmd++" -D +C "++" 2> ppov.log",  %%% CHEAT WITH +C
-    Cmd2 = Nice++" "++Cmd++" +C "++" 2> ppov.log",  %%% CHEAT WITH +C
+    Cmd2 = Nice++" "++Cmd++" -D +C "++" 2> ppov.log",  %%% CHEAT WITH +C
+    %% Cmd2 = Nice++" "++Cmd++" +C "++" 2> ppov.log",  %%% CHEAT WITH +C
     Port = open_port({spawn, Cmd2}, [{cd, DirName}, exit_status]),
     %% ppov:started(Job, Port),
     Parent ! {Ref, {Job, Port}},
