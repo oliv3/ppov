@@ -15,7 +15,7 @@ start() ->
 
 
 init() ->
-    DocRoot = "./www",
+    DocRoot = "yaws",
     yaws:start_embedded(DocRoot,
 			[
 			 {servername, ?CONTROL_HOST},
