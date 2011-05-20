@@ -14,45 +14,36 @@
 %% Then you can "killall ppovray" :)
 -define(POVRAY, "ppovray").
 
--define(TESTS, [
-		"test/planet/planet.pov",
-		"test/advanced/landscape/landscape.pov",
-		"test/advanced/wineglass/wineglass.pov",
-		"test/advanced/chess2/chess2.pov",
-		"test/advanced/abyss/abyss.pov",
-		"test/advanced/woodbox/woodbox.pov",
-		"test/animations/ambient/ambient.ini"
-	       ]).
-
-cwd() ->
-    {ok, CWD} = file:get_cwd(),
-    CWD++"/".
-
-test() ->
-    [render(cwd()++File) || File <- ?TESTS].
 
 render(File) ->
+    Ref = make_ref(),
+    spawn_link(?MODULE, render, [self(), Ref, File]),
+    receive
+	{Ref, Result} -> %% {Job, Port}
+	    Result
+    end.
+
+
+render(Parent, Ref, File) ->
     UUID = uuid:timestamp(),
-    spawn_link(?MODULE, render, [UUID, File]),
-    {ok, uuid:to_string(UUID)}.
-
-
-render(UUID, File) ->
     Povray = os:find_executable(?POVRAY),
     FileName = filename:basename(File),
     DirName = filename:dirname(File),
     Size = " +W640 +H480",
+    %% Size = " +W800 +H600",
     Args = Size ++ " " ++ FileName,
     Cmd = Povray ++ Args,
-    run_povray(UUID, Cmd, DirName).
+    Job = #job{id=UUID, cmd=Cmd, dirname=DirName},
+    run_povray(Parent, Ref, Job). %%UUID, Cmd, DirName).
 
-run_povray(UUID, Cmd, DirName) ->
+run_povray(Parent, Ref, #job{id=UUID, cmd=Cmd, dirname=DirName} = Job) ->
     Nice = os:find_executable(?NICE)++" -n19",
     %% io:format("Spawning command: ~p in ~p~n", [Cmd, DirName]),
+    %% Cmd2 = Nice++" "++Cmd++" -D +C "++" 2> ppov.log",  %%% CHEAT WITH +C
     Cmd2 = Nice++" "++Cmd++" +C "++" 2> ppov.log",  %%% CHEAT WITH +C
     Port = open_port({spawn, Cmd2}, [{cd, DirName}, exit_status]),
-    Job = #job{id=UUID, cmd=Cmd, dirname=DirName},
-    ppov:started(Job, Port),
+    %% ppov:started(Job, Port),
+    Parent ! {Ref, {Job, Port}},
     Exit = receive
 	       {Port, {exit_status, E}} ->
 		   E

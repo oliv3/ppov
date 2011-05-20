@@ -7,16 +7,35 @@
 
 -export([start/0, stop/0, resume/0]).
 -export([started/2, done/2, error/2]).
--export([status/0]).
+-export([add/1, status/0]).
+
+-define(MAX_JOBS, 4).
+
+%% TODO:
+%% (ppov@localhost)1> ppov: unhandled message {error,<<131,5,117,66,130,246,17,224,166,202,0,0,0,0,0,
+%%                                  0>>,
+%%                                143}
 
 %% Tests
 -export([test/0]).
+-define(TESTS, [
+		"test/planet/planet.pov",
+		"test/advanced/landscape/landscape.pov",
+		"test/advanced/wineglass/wineglass.pov",
+		"test/advanced/chess2/chess2.pov",
+		"test/advanced/abyss/abyss.pov",
+		"test/advanced/woodbox/woodbox.pov",
+		"test/animations/ambient/ambient.ini"
+	       ]).
 
 %% Internal exports
 -export([boot/0]).
 
 -define(SERVER, ?MODULE).
--record(state, {ports=ets:new(ports, [protected])}).
+-record(state, {
+	  ports=ets:new(ports, [protected]),
+	  waiting=ets:new(waiting, [protected])
+	 }).
 
 
 start() ->
@@ -24,8 +43,6 @@ start() ->
     uuid:start(),
     spawn(?MODULE, boot, []).
 
-test() ->
-    povray:test().
 
 started(Job, Port) ->
     cast({started, Job, Port}).
@@ -33,6 +50,9 @@ done(UUID, Port) ->
     cast({done, UUID, Port}).
 error(UUID, Error) -> %% TODO add Port
     cast({error, UUID, Error}).
+
+add(File) ->
+    call({add, File}).
 
 status() ->
     call(status).
@@ -51,17 +71,38 @@ boot() ->
     register(?SERVER, self()),
     loop(#state{}).
 
-loop(#state{ports=Tid} = State) ->
+loop(#state{ports=Tid, waiting=WaitTid} = State) ->
     receive
-	{started, Job, Port} ->
-	    dets:insert(?JOBS, Job),
-	    ets:insert(Tid, {Port}),
+	{From, Ref, {add, File}} ->
+	    N = ets:info(Tid, size),
+	    if
+		N < ?MAX_JOBS ->
+		    %% {Job, Port} = povray:render(File),
+		    %% dets:insert(?JOBS, Job),
+		    %% ets:insert(Tid, {Port}),
+		    start_job(Tid, File),
+		    From ! {Ref, {added, File}};
+		true ->
+		    io:format("Add file to waiting queue: ~p~n", [File]),
+		    ets:insert(WaitTid, {File}),
+		    From ! {Ref, {waiting, File}}
+	    end,
 	    loop(State);
 
 	{done, UUID, Port} ->
 	    Job = job(UUID),
 	    dets:insert(?JOBS, Job#job{status=done}),
-	    ets:delete(Tid, {Port}),
+	    ets:delete(Tid, Port),
+
+	    %% Start a waiting job
+	    case ets:tab2list(WaitTid) of
+		[] ->
+		    ok;
+		[{File}|_] ->
+		    io:format("Start waiting job: ~p~n", [File]),
+		    ets:delete(WaitTid, File),
+		    start_job(Tid, File)
+	    end,
 	    loop(State);
 
 	{From, Ref, status} ->
@@ -96,6 +137,12 @@ call(Msg) ->
     end.
 
 
+start_job(Tid, File) ->
+    {Job, Port} = povray:render(File),
+    dets:insert(?JOBS, Job),
+    ets:insert(Tid, {Port}).
+
+
 display(#job{id=UUID, cmd=Cmd, dirname=DirName, status=Status}, Acc) ->
     io:format("~s status: ~p command:~s path: ~s~n",
 	      [uuid:to_string(UUID), Status, Cmd, DirName]),
@@ -109,6 +156,7 @@ pause(_Job, Acc) ->
     Acc.
 
 
+%% FIXME: surement broken avec le system de queue
 %% TODO: s/id/uuid in the job record ? --oliv3
 resume(#job{id=UUID, status=paused, cmd=Cmd, dirname=DirName} = Job, Acc) ->
     %% povray:run_povray(UUID, Cmd, DirName),
@@ -122,3 +170,12 @@ resume(_Job, Acc) ->
 job(UUID) ->
     [Job] = dets:lookup(?JOBS, UUID),
     Job.
+
+
+%% Tests
+cwd() ->
+    {ok, CWD} = file:get_cwd(),
+    CWD++"/".
+
+test() ->
+    [add(cwd()++File) || File <- ?TESTS].
