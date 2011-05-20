@@ -98,7 +98,7 @@ loop(#state{ports=Tid, waiting=WaitTid, serial=S} = State) ->
 		[] ->
 		    ok;
 		[{Serial, File}|_] ->
-		    io:format("Start waiting job: ~p, ~p~n", [Serial, File]),
+		    %% io:format("Start waiting job: ~p, ~p~n", [Serial, File]),
 		    ets:delete(WaitTid, Serial),
 		    start_job(Tid, File)
 	    end,
