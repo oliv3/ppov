@@ -29,11 +29,14 @@ render(Parent, Ref, File) ->
     Povray = os:find_executable(?POVRAY),
     FileName = filename:basename(File),
     DirName = filename:dirname(File),
+
     %% Size = " +W160 +H120",
     %% Size = " +W320 +H240",
     Size = " +W640 +H480",
     %% Size = " +W800 +H600",
-    Args = Size ++ " " ++ FileName,
+
+    PovArgs = " +A",
+    Args = Size ++ PovArgs ++ " " ++ FileName,
     Cmd = Povray ++ Args,
     Job = #job{id=UUID, cmd=Cmd, dirname=DirName},
     run_povray(Parent, Ref, Job). %%UUID, Cmd, DirName).
