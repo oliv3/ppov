@@ -7,9 +7,9 @@
 
 -export([start/0, stop/0, resume/0]).
 -export([started/2, done/2, error/2]).
--export([add/1, status/0]).
+-export([add/1, status/0, info/0]).
 
--define(MAX_JOBS, 10).
+-define(MAX_JOBS, 4).
 
 %% TODO:
 %% (ppov@localhost)1> ppov: unhandled message {error,<<131,5,117,66,130,246,17,224,166,202,0,0,0,0,0,
@@ -55,6 +55,8 @@ error(UUID, Error) -> %% TODO add Port
 add(File) ->
     call({add, File}).
 
+info() ->
+    call(info).
 status() ->
     call(status).
 
@@ -98,14 +100,21 @@ loop(#state{ports=Tid, waiting=WaitTid, serial=S} = State) ->
 		[] ->
 		    ok;
 		[{Serial, File}|_] ->
-		    io:format("Start waiting job: ~p, ~p~n", [Serial, File]),
+		    %% io:format("Start waiting job: ~p, ~p~n", [Serial, File]),
 		    ets:delete(WaitTid, Serial),
 		    start_job(Tid, File)
 	    end,
 	    loop(State);
 
-	{From, Ref, status} ->
+	{From, Ref, info} ->
 	    dets:foldl(fun display/2, [], ?JOBS),
+	    From ! {Ref, ok},
+	    loop(State);
+
+	{From, Ref, status} ->
+	    Running = ets:info(Tid, size),
+	    Waiting = ets:info(WaitTid, size),
+	    io:format("Running: ~p Waiting: ~p~n", [Running, Waiting]),
 	    From ! {Ref, ok},
 	    loop(State);
 
