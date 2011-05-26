@@ -59,5 +59,6 @@ run_povray(Parent, Ref, #job{id=UUID, cmd=Cmd, dirname=DirName} = Job) ->
 	
 	%% TODO: cf http://www.cs.pitt.edu/~alanjawi/cs449/code/shell/UnixSignals.htm
 	Other -> %% TODO: paused ou error
-	    ppov:error(UUID, Other)
+	    error_logger:error_msg("Job ~s exited with code ~p~nCmd: ~p~nDir: ~p~n~n", [uuid:to_string(UUID), Other, Cmd, DirName]),
+	    ppov:error(UUID, Port, Other)
     end.

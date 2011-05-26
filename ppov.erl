@@ -6,15 +6,10 @@
 -compile([export_all]).
 
 -export([start/0, stop/0, resume/0]).
--export([started/2, done/2, error/2]).
+-export([started/2, done/2, error/3]).
 -export([add/1, status/0, info/0]).
 
 -define(MAX_JOBS, 4).
-
-%% TODO:
-%% (ppov@localhost)1> ppov: unhandled message {error,<<131,5,117,66,130,246,17,224,166,202,0,0,0,0,0,
-%%                                  0>>,
-%%                                143}
 
 %% Tests
 -export([test/0]).
@@ -49,8 +44,8 @@ started(Job, Port) ->
     cast({started, Job, Port}).
 done(UUID, Port) ->
     cast({done, UUID, Port}).
-error(UUID, Error) -> %% TODO add Port
-    cast({error, UUID, Error}).
+error(UUID, Port, Error) ->
+    cast({error, UUID, Port, Error}).
 
 add(File) ->
     call({add, File}).
@@ -94,16 +89,14 @@ loop(#state{ports=Tid, waiting=WaitTid, serial=S} = State) ->
 	    Job = job(UUID),
 	    dets:insert(?JOBS, Job#job{status=done}),
 	    ets:delete(Tid, Port),
+	    start_waiting(Tid, WaitTid),
+	    loop(State);
 
-	    %% Start a waiting job
-	    case ets:tab2list(WaitTid) of
-		[] ->
-		    ok;
-		[{Serial, File}|_] ->
-		    %% io:format("Start waiting job: ~p, ~p~n", [Serial, File]),
-		    ets:delete(WaitTid, Serial),
-		    start_job(Tid, File)
-	    end,
+	{error, UUID, Port, Exit} ->
+	    Job = job(UUID),
+	    dets:insert(?JOBS, Job#job{status={exit, Exit}}),
+	    ets:delete(Tid, Port),
+	    start_waiting(Tid, WaitTid),
 	    loop(State);
 
 	{From, Ref, info} ->
@@ -187,3 +180,15 @@ cwd() ->
 
 test() ->
     [add(cwd()++File) || File <- ?TESTS].
+
+
+start_waiting(Tid, WaitTid) ->
+    %% Start a waiting job
+    case ets:tab2list(WaitTid) of
+	[] ->
+	    ok;
+	[{Serial, File}|_] ->
+	    %% io:format("Start waiting job: ~p, ~p~n", [Serial, File]),
+	    ets:delete(WaitTid, Serial),
+	    start_job(Tid, File)
+    end.
