@@ -6,4 +6,4 @@ all: povray.beam ppov.beam uuid.beam ppov_http.beam
 	erlc $(OPTIONS) $< -o $@
 
 clean:
-	@rm -f *.log *.access *~ *.beam erl_crash.dump
+	@rm -f jobs *.log *.access *~ *.beam erl_crash.dump
